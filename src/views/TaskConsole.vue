@@ -5,7 +5,7 @@ import {
   NTabs, NTabPane, NUpload, NUploadDragger, NInputGroup, NGrid, NGi, NText, NStatistic,
 } from 'naive-ui'
 import type { UploadFileInfo } from 'naive-ui'
-import { api, STAGE_LABEL, type Task, type ApiError, type Precision } from '../api/client'
+import { api, STAGE_LABEL, fmtTs, type Task, type ApiError, type Precision } from '../api/client'
 
 const message = useMessage()
 const source = ref('')
@@ -84,17 +84,47 @@ async function submitLink() {
   }
 }
 
-async function handleUpload({ file }: { file: UploadFileInfo }) {
+/** 待确认的上传文件（确认门前本地暂存，不发请求） */
+const pendingFile = ref<File | null>(null)
+const pendingPreviewUrl = ref('')
+const pendingDuration = ref<number | null>(null)
+
+function onFilePicked({ file }: { file: UploadFileInfo }) {
   const f = file.file
   if (!f) return
   if (f.size > 2 * 1024 * 1024 * 1024) {
     message.error('文件超过 2GB 上限')
     return
   }
+  pendingFile.value = f
+  pendingPreviewUrl.value = URL.createObjectURL(f)
+  pendingDuration.value = null
+  // 读时长预览（视频元数据）
+  const v = document.createElement('video')
+  v.preload = 'metadata'
+  v.onloadedmetadata = () => {
+    pendingDuration.value = v.duration
+    URL.revokeObjectURL(v.src)
+  }
+  v.src = pendingPreviewUrl.value
+}
+
+function clearPending() {
+  pendingFile.value = null
+  if (pendingPreviewUrl.value) URL.revokeObjectURL(pendingPreviewUrl.value)
+  pendingPreviewUrl.value = ''
+  pendingDuration.value = null
+}
+
+/** 确认后才真正上传建任务 */
+async function confirmUpload() {
+  const f = pendingFile.value
+  if (!f) return
   uploading.value = true
   try {
     const r = await api.uploadVideo(f, quality.value, precision.value)
     message.success(`上传完成，任务已创建：${r.task_id}`)
+    clearPending()
     await refresh()
   } catch (e: unknown) {
     handleErr(e)
@@ -138,8 +168,12 @@ async function submitBatch() {
 function handleErr(e: unknown) {
   const err = e as ApiError
   if (err.status === 409) {
-    const d = err.detail as { task_id?: string; stage?: string } | undefined
-    message.info(`该视频已在知识库或处理中（${d?.stage ?? '-'}）`)
+    const d = err.detail as { task_id?: string; stage?: string; reason?: string } | undefined
+    if (d?.reason === 'duplicate_content') {
+      message.info(`相同内容的视频已存在（${d.task_id}，${d.stage}），已自动跳过，不会重复处理`)
+    } else {
+      message.info(`该视频已在知识库或处理中（${d?.stage ?? '-'}）`)
+    }
   } else {
     message.error(`提交失败：${err.message}（确认后端已启动）`)
   }
@@ -175,24 +209,53 @@ onUnmounted(() => {
           </NSpace>
         </NTabPane>
 
-        <!-- 本地上传 -->
+        <!-- 本地上传：确认门（选中→预览确认→才上传） -->
         <NTabPane name="upload" tab="📁 本地上传">
           <NSpace vertical style="padding: 4px 0">
             <NUpload
+              v-if="!pendingFile"
               draggable
               :max="1"
               :default-upload="false"
+              :show-upload-list="false"
               accept="video/*,.mp4,.mkv,.webm,.mov,.avi"
-              @change="handleUpload"
+              @change="onFilePicked"
             >
               <NUploadDragger style="padding: 24px 0">
                 <div style="font-size: 32px; margin-bottom: 8px">📤</div>
-                <NText strong>点击或拖拽视频文件到此处上传</NText>
+                <NText strong>点击或拖拽视频文件到此处</NText>
                 <div style="font-size: 12px; color: #94a3b8; margin-top: 4px">
                   支持 mp4 / mkv / webm / mov / avi，单文件上限 2GB
                 </div>
               </NUploadDragger>
             </NUpload>
+
+            <!-- 确认面板：未点确认前不会上传 -->
+            <NCard v-else size="small" embedded>
+              <NSpace align="center" :size="16">
+                <video
+                  :src="pendingPreviewUrl"
+                  style="width: 200px; max-height: 120px; border-radius: 4px; background: #000"
+                  controls
+                />
+                <div style="flex: 1; min-width: 0">
+                  <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+                    {{ pendingFile.name }}
+                  </div>
+                  <div style="font-size: 12px; color: #94a3b8; margin-top: 4px">
+                    {{ (pendingFile.size / 1024 / 1024).toFixed(1) }} MB
+                    <template v-if="pendingDuration !== null"> · 时长 {{ fmtTs(pendingDuration) }}</template>
+                  </div>
+                </div>
+              </NSpace>
+              <NSpace justify="end" style="margin-top: 12px">
+                <NButton quaternary @click="clearPending">重新选择</NButton>
+                <NButton type="primary" :loading="uploading" @click="confirmUpload">确认处理</NButton>
+              </NSpace>
+              <div style="font-size: 12px; color: #94a3b8; margin-top: 8px">
+                点「确认处理」后文件才会上传；相同内容的重复上传会被自动识别并跳过
+              </div>
+            </NCard>
           </NSpace>
         </NTabPane>
 
