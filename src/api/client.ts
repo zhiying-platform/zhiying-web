@@ -114,10 +114,11 @@ export const api = {
     return req<CreateTaskResult & { file: string }>('/upload', { method: 'POST', body: form, headers: {} })
   },
 
-  deleteTask: (video_id: string) =>
-    req<{ deleted: boolean; kb_deleted: boolean; dir_deleted: boolean }>(`/tasks/${video_id}`, {
-      method: 'DELETE',
-    }),
+  deleteTask: (video_id: string, mode: 'record' | 'all' = 'record', keep_source = false) =>
+    req<{ deleted: boolean; mode: string; kb_deleted: boolean; dir_deleted: boolean; deleted_items: string[] }>(
+      `/tasks/${video_id}?mode=${mode}&keep_source=${keep_source}`,
+      { method: 'DELETE' },
+    ),
 
   listTasks: (stageFilter = 'all') =>
     req<{ tasks: Task[] }>(`/tasks?stage_filter=${encodeURIComponent(stageFilter)}`),

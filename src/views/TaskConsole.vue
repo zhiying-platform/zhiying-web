@@ -61,16 +61,20 @@ const filteredTasks = computed(() =>
   stageFilter.value === 'all' ? tasks.value : tasks.value.filter((t) => t.stage === stageFilter.value),
 )
 
-/** 删除任务数据（确认对话框 + 调用 DELETE API） */
+/** 删除任务（DR-26 两档）：record=仅清记录（保留 KB 与源视频/产物）；all=彻底删除 */
 const deleting = ref<string | null>(null)
-async function removeTask(id: string) {
+async function removeTask(id: string, mode: 'record' | 'all') {
   deleting.value = id
   try {
-    const r = await api.deleteTask(id)
-    const parts = []
-    if (r.kb_deleted) parts.push('知识库条目')
-    if (r.dir_deleted) parts.push('工作目录')
-    message.success(`已删除：${parts.join(' + ') || '无数据'}`)
+    const r = await api.deleteTask(id, mode)
+    if (mode === 'record') {
+      message.success('任务记录已清除（知识库与源视频/产物保留）')
+    } else {
+      const parts = []
+      if (r.kb_deleted) parts.push('知识库条目')
+      if (r.dir_deleted) parts.push('工作目录（含源视频）')
+      message.success(`已彻底删除：${parts.join(' + ') || '无数据'}`)
+    }
     await refresh()
   } catch (e: unknown) {
     message.error(`删除失败：${(e as Error).message}`)
@@ -355,11 +359,17 @@ onUnmounted(() => {
             <NTag :type="STAGE_TYPE[t.stage || '-'] || 'default'" size="small">
               {{ STAGE_LABEL[t.stage || '-'] || t.stage }}
             </NTag>
-            <NPopconfirm @positive-click="removeTask(t.video_id)">
+            <NPopconfirm @positive-click="removeTask(t.video_id, 'record')">
               <template #trigger>
-                <NButton size="tiny" quaternary type="error" :loading="deleting === t.video_id">删除</NButton>
+                <NButton size="tiny" quaternary :loading="deleting === t.video_id">清除记录</NButton>
               </template>
-              删除该视频的全部数据（知识库条目 + 工作目录）？不可恢复。
+              仅清任务记录（进度/状态），保留知识库条目与源视频/产物。
+            </NPopconfirm>
+            <NPopconfirm @positive-click="removeTask(t.video_id, 'all')">
+              <template #trigger>
+                <NButton size="tiny" quaternary type="error" :loading="deleting === t.video_id">彻底删除</NButton>
+              </template>
+              删除全部数据（知识库条目 + 源视频 + 产物）？不可恢复！
             </NPopconfirm>
           </div>
           <NProgress
