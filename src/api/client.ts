@@ -41,6 +41,9 @@ export interface CreateTaskResult {
   stage?: string
 }
 
+/** 画面识别精度（DR-22 两档） */
+export type Precision = 'fast' | 'precise'
+
 export interface TaskDetail {
   video_id: string
   stage: string
@@ -89,8 +92,20 @@ export interface VideoItem {
 export const api = {
   health: () => req<{ status: string; version: string }>('/health'),
 
-  createTask: (source: string, quality = '480') =>
-    req<CreateTaskResult>('/tasks', { method: 'POST', body: JSON.stringify({ source, quality }) }),
+  createTask: (source: string, quality = '480', precision: Precision = 'fast') =>
+    req<CreateTaskResult>('/tasks', {
+      method: 'POST',
+      body: JSON.stringify({ source, quality, precision }),
+    }),
+
+  /** 上传本地视频文件（multipart 流式，一步到位建任务） */
+  uploadVideo: (file: File, quality = '480', precision: Precision = 'fast') => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('quality', quality)
+    form.append('precision', precision)
+    return req<CreateTaskResult & { file: string }>('/upload', { method: 'POST', body: form, headers: {} })
+  },
 
   listTasks: () => req<{ tasks: Task[] }>('/tasks'),
 
