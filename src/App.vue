@@ -1,19 +1,27 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, h } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NConfigProvider, NLayout, NLayoutHeader, NLayoutContent, NMenu, NMessageProvider, zhCN, dateZhCN } from 'naive-ui'
+import {
+  NConfigProvider, NLayout, NLayoutSider, NLayoutContent, NLayoutHeader, NMenu,
+  NMessageProvider, zhCN, dateZhCN,
+} from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
 
 const route = useRoute()
 const router = useRouter()
 
+function renderIconEmoji(emoji: string) {
+  return () => h('span', { style: 'font-size: 16px' }, emoji)
+}
+
 const menuOptions: MenuOption[] = [
-  { label: '任务台', key: '/tasks' },
-  { label: '知识库', key: '/library' },
-  { label: '问答', key: '/ask' },
+  { label: '任务台', key: '/tasks', icon: renderIconEmoji('🎬') },
+  { label: '知识库', key: '/library', icon: renderIconEmoji('📚') },
+  { label: '问答', key: '/ask', icon: renderIconEmoji('💬') },
 ]
 
 const activeKey = computed(() => route.path)
+const pageTitle = computed(() => (route.meta.title as string) || '')
 
 function onMenu(key: string) {
   router.push(key)
@@ -23,26 +31,38 @@ function onMenu(key: string) {
 <template>
   <NConfigProvider :locale="zhCN" :date-locale="dateZhCN" :theme-overrides="{ common: { primaryColor: '#2563eb' } }">
     <NMessageProvider>
-      <NLayout position="absolute">
-        <NLayoutHeader bordered style="height: 56px; display: flex; align-items: center; padding: 0 24px; gap: 32px">
-          <div style="display: flex; align-items: baseline; gap: 8px">
-            <span style="font-size: 18px; font-weight: 600; letter-spacing: 1px">知映</span>
+      <NLayout position="absolute" has-sider>
+        <!-- 侧边栏 -->
+        <NLayoutSider
+          bordered
+          :width="200"
+          :collapsed-width="0"
+          collapse-mode="width"
+          show-trigger
+          style="background: #fff"
+        >
+          <div style="padding: 20px 20px 12px; display: flex; align-items: baseline; gap: 8px">
+            <span style="font-size: 20px; font-weight: 700; letter-spacing: 2px; color: #1e293b">知映</span>
             <span style="font-size: 12px; color: #94a3b8">zhiying</span>
           </div>
-          <NMenu
-            mode="horizontal"
-            :options="menuOptions"
-            :value="activeKey"
-            responsive
-            @update:value="onMenu"
-          />
-          <div style="margin-left: auto; font-size: 12px; color: #94a3b8">
-            视频知识库 · V0.3
+          <NMenu :options="menuOptions" :value="activeKey" :indent="24" @update:value="onMenu" />
+          <div style="position: absolute; bottom: 16px; padding: 0 20px; font-size: 12px; color: #cbd5e1">
+            视频知识库 V0.3
           </div>
-        </NLayoutHeader>
-        <NLayoutContent content-style="padding: 20px 24px">
-          <RouterView />
-        </NLayoutContent>
+        </NLayoutSider>
+
+        <!-- 主区 -->
+        <NLayout>
+          <NLayoutHeader
+            bordered
+            style="height: 52px; display: flex; align-items: center; padding: 0 24px; background: #fff"
+          >
+            <span style="font-size: 16px; font-weight: 600; color: #334155">{{ pageTitle }}</span>
+          </NLayoutHeader>
+          <NLayoutContent content-style="padding: 24px; min-height: calc(100vh - 52px)">
+            <RouterView />
+          </NLayoutContent>
+        </NLayout>
       </NLayout>
     </NMessageProvider>
   </NConfigProvider>
@@ -57,6 +77,14 @@ body,
 }
 body {
   font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-  background: #f8fafc;
+  background: #f1f5f9;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 </style>

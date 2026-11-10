@@ -20,7 +20,12 @@ async function ask() {
     history.value.unshift({ q, r })
     question.value = ''
   } catch (e: unknown) {
-    message.error(`提问失败：${(e as Error).message}（确认后端已启动）`)
+    const err = e as Error
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+      message.error('提问超时（180 秒）——后端可能繁忙，请稍后重试；相同问题 10 分钟内会直接返回缓存')
+    } else {
+      message.error(`提问失败：${err.message}（确认后端已启动）`)
+    }
   } finally {
     loading.value = false
   }
@@ -40,6 +45,7 @@ async function ask() {
           />
           <NButton type="primary" :loading="loading" @click="ask">提问</NButton>
         </NSpace>
+        <NText depth="3" style="font-size: 12px">一般 10-30 秒返回；超过 180 秒自动超时提示，相同问题 10 分钟内秒回</NText>
         <NAlert type="info" :bordered="false" size="small">
           答案基于已入库视频内容生成，每条回答都带来源引用（视频名 + 时间戳）；知识库无依据时会明确告知。
         </NAlert>
@@ -69,16 +75,16 @@ async function ask() {
               引用 {{ h.r.citations.length }} 条
             </div>
             <NSpace :size="6" style="margin-top: 6px">
-              <NTag
-                v-for="(c, ci) in h.r.citations"
-                :key="ci"
-                size="small"
-                type="success"
-                :bordered="false"
-                style="cursor: default"
-              >
-                [{{ c.start_ts_fmt }}] {{ c.title?.slice(0, 16) }}
-              </NTag>
+              <template v-for="(c, ci) in h.r.citations" :key="ci">
+                <a v-if="c.url" :href="c.url" target="_blank" rel="noopener" style="text-decoration: none">
+                  <NTag size="small" type="success" :bordered="false" style="cursor: pointer">
+                    ▶ [{{ c.start_ts_fmt }}] {{ c.title?.slice(0, 14) }}
+                  </NTag>
+                </a>
+                <NTag v-else size="small" type="success" :bordered="false">
+                  [{{ c.start_ts_fmt }}] {{ c.title?.slice(0, 14) }}
+                </NTag>
+              </template>
             </NSpace>
 
             <NCollapse style="margin-top: 10px">
@@ -87,6 +93,13 @@ async function ask() {
                   <div v-for="(c, ci) in h.r.citations" :key="ci" style="font-size: 13px; line-height: 1.7">
                     <div style="color: #64748b; margin-bottom: 2px">
                       【{{ c.title }}】{{ c.start_ts_fmt }} - {{ c.end_ts_fmt }}
+                      <a
+                        v-if="c.url"
+                        :href="c.url"
+                        target="_blank"
+                        rel="noopener"
+                        style="margin-left: 8px; font-size: 12px"
+                      >打开视频 ↗</a>
                     </div>
                     <div style="color: #334155; background: #f8fafc; padding: 8px; border-radius: 4px; white-space: pre-wrap">
                       {{ c.quote }}

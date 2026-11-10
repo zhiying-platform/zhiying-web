@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import {
   NButton, NCard, NInput, NSpace, NTag, NProgress, NEmpty, useMessage, NSelect,
-  NTabs, NTabPane, NUpload, NUploadDragger, NInputGroup, NGrid, NGi, NText, NStatistic,
+  NTabs, NTabPane, NUpload, NUploadDragger, NInputGroup, NGrid, NGi, NText, NStatistic, NTooltip,
 } from 'naive-ui'
 import type { UploadFileInfo } from 'naive-ui'
 import { api, STAGE_LABEL, fmtTs, type Task, type ApiError, type Precision } from '../api/client'
@@ -26,7 +26,7 @@ const qualityOptions = [
 
 const precisionOptions = [
   { label: '⚡ 快速（默认，长视频秒级）', value: 'fast' },
-  { label: '🔬 精细（逐帧场景检测，长视频 10min+）', value: 'precise' },
+  { label: '🔬 精细（逐帧检测，长视频约 10 分钟）', value: 'precise' },
 ]
 
 const STAGE_PERCENT: Record<string, number> = {
@@ -280,7 +280,14 @@ onUnmounted(() => {
 
       <template #header-extra>
         <NSpace :size="10" align="center">
-          <NSelect v-model:value="precision" :options="precisionOptions" style="width: 300px" size="small" />
+          <NTooltip trigger="hover" placement="bottom-end">
+            <template #trigger>
+              <NSelect v-model:value="precision" :options="precisionOptions" style="width: 320px" size="small" />
+            </template>
+            画面识别精度：
+            ⚡快速 —— 日常收藏/批量导入（长视频秒级完成，抽帧均匀覆盖）
+            🔬精细 —— 镜头切换快的视频（教程/PPT/游戏录像），需帧级切点；长视频约 10 分钟
+          </NTooltip>
           <NSelect v-model:value="quality" :options="qualityOptions" style="width: 140px" size="small" />
         </NSpace>
       </template>

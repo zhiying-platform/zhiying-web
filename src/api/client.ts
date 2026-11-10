@@ -56,11 +56,14 @@ export interface SearchHit {
   chunk_id: number
   video_id: string
   title: string
+  /** 原视频链接（B站/YouTube；本地文件为空或路径） */
+  source: string
   start_ts: number
   end_ts: number
   text: string
   score: number
-  source: string
+  /** 命中方式：vector（向量）| fulltext（全文） */
+  source_kind: 'vector' | 'fulltext'
 }
 
 export interface Citation {
@@ -71,6 +74,8 @@ export interface Citation {
   quote: string
   start_ts_fmt: string
   end_ts_fmt: string
+  /** 视频深链（带时间点，可跳回原视频）；本地文件/未知来源为 null */
+  url?: string | null
 }
 
 export interface AskResult {
@@ -115,10 +120,16 @@ export const api = {
     req<{ query: string; results: SearchHit[] }>('/search', {
       method: 'POST',
       body: JSON.stringify({ query, top_k }),
+      signal: AbortSignal.timeout(60_000),
     }),
 
   ask: (question: string, top_k = 5) =>
-    req<AskResult>('/ask', { method: 'POST', body: JSON.stringify({ question, top_k }) }),
+    req<AskResult>('/ask', {
+      method: 'POST',
+      body: JSON.stringify({ question, top_k }),
+      // 问答超时保护（DR-24）：180s 内未返回则中断，避免前端永久 pending
+      signal: AbortSignal.timeout(180_000),
+    }),
 
   videos: () => req<{ videos: VideoItem[] }>('/videos'),
 }
