@@ -2,7 +2,8 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import {
   NButton, NCard, NInput, NSpace, NTag, NProgress, NEmpty, useMessage, NSelect,
-  NTabs, NTabPane, NUpload, NUploadDragger, NInputGroup, NGrid, NGi, NText, NStatistic, NTooltip,
+  NTabs, NTabPane, NUpload, NUploadDragger, NInputGroup, NGrid, NGi, NText, NStatistic,
+  NTooltip, NPopconfirm,
 } from 'naive-ui'
 import type { UploadFileInfo } from 'naive-ui'
 import { api, STAGE_LABEL, fmtTs, type Task, type ApiError, type Precision } from '../api/client'
@@ -47,6 +48,37 @@ const stats = computed(() => {
   return s
 })
 
+/** 状态筛选（DR-25） */
+const stageFilter = ref('all')
+const stageFilterOptions = [
+  { label: '全部', value: 'all' },
+  { label: '⏳ 处理中', value: 'running' },
+  { label: '排队', value: 'pending' },
+  { label: '✅ 已完成', value: 'done' },
+  { label: '❌ 失败', value: 'failed' },
+]
+const filteredTasks = computed(() =>
+  stageFilter.value === 'all' ? tasks.value : tasks.value.filter((t) => t.stage === stageFilter.value),
+)
+
+/** 删除任务数据（确认对话框 + 调用 DELETE API） */
+const deleting = ref<string | null>(null)
+async function removeTask(id: string) {
+  deleting.value = id
+  try {
+    const r = await api.deleteTask(id)
+    const parts = []
+    if (r.kb_deleted) parts.push('知识库条目')
+    if (r.dir_deleted) parts.push('工作目录')
+    message.success(`已删除：${parts.join(' + ') || '无数据'}`)
+    await refresh()
+  } catch (e: unknown) {
+    message.error(`删除失败：${(e as Error).message}`)
+  } finally {
+    deleting.value = null
+  }
+}
+
 /** 批量文本 → 有效行（去注释/空行/重复） */
 const batchLines = computed(() => {
   const seen = new Set<string>()
@@ -58,7 +90,7 @@ const batchLines = computed(() => {
 
 async function refresh() {
   try {
-    const r = await api.listTasks()
+    const r = await api.listTasks(stageFilter.value)
     tasks.value = r.tasks
   } catch {
     /* 服务未启动时静默 */
@@ -294,28 +326,41 @@ onUnmounted(() => {
     </NCard>
 
     <NCard size="small" style="margin-bottom: 16px">
-      <NGrid :cols="4" :x-gap="12">
+      <NGrid :cols="5" :x-gap="12">
         <NGi><NStatistic label="全部任务" :value="stats.total" /></NGi>
         <NGi><NStatistic label="处理中" :value="stats.running" /></NGi>
         <NGi><NStatistic label="已完成" :value="stats.done" /></NGi>
         <NGi><NStatistic label="失败" :value="stats.failed" /></NGi>
+        <NGi>
+          <div style="font-size: 12px; color: #94a3b8; margin-bottom: 6px">状态筛选</div>
+          <NSelect v-model:value="stageFilter" :options="stageFilterOptions" size="small" @update:value="refresh" />
+        </NGi>
       </NGrid>
     </NCard>
 
     <NCard title="任务列表" size="small">
-      <NEmpty v-if="!tasks.length" description="暂无任务 —— 用上方任一方式提交视频" />
+      <NEmpty v-if="!filteredTasks.length" description="该状态下暂无任务" />
       <NSpace v-else vertical :size="10">
-        <NCard v-for="t in tasks" :key="t.video_id" size="small" embedded>
+        <NCard v-for="t in filteredTasks" :key="t.video_id" size="small" embedded>
           <div style="display: flex; align-items: center; gap: 12px">
             <div style="flex: 1; min-width: 0">
               <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
                 {{ t.title || t.video_id }}
               </div>
               <div style="font-size: 12px; color: #94a3b8">{{ t.video_id }}</div>
+              <div v-if="t.stage === 'failed' && t.error" style="font-size: 12px; color: #ef4444; margin-top: 2px">
+                {{ t.error.slice(0, 80) }}
+              </div>
             </div>
             <NTag :type="STAGE_TYPE[t.stage || '-'] || 'default'" size="small">
               {{ STAGE_LABEL[t.stage || '-'] || t.stage }}
             </NTag>
+            <NPopconfirm @positive-click="removeTask(t.video_id)">
+              <template #trigger>
+                <NButton size="tiny" quaternary type="error" :loading="deleting === t.video_id">删除</NButton>
+              </template>
+              删除该视频的全部数据（知识库条目 + 工作目录）？不可恢复。
+            </NPopconfirm>
           </div>
           <NProgress
             style="margin-top: 10px"

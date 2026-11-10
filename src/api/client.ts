@@ -33,6 +33,8 @@ export interface Task {
   title?: string
   status?: string
   stage?: string
+  /** 失败原因（仅 failed 状态返回） */
+  error?: string
 }
 
 /** POST /api/tasks 的 202 响应（新任务） */
@@ -112,7 +114,13 @@ export const api = {
     return req<CreateTaskResult & { file: string }>('/upload', { method: 'POST', body: form, headers: {} })
   },
 
-  listTasks: () => req<{ tasks: Task[] }>('/tasks'),
+  deleteTask: (video_id: string) =>
+    req<{ deleted: boolean; kb_deleted: boolean; dir_deleted: boolean }>(`/tasks/${video_id}`, {
+      method: 'DELETE',
+    }),
+
+  listTasks: (stageFilter = 'all') =>
+    req<{ tasks: Task[] }>(`/tasks?stage_filter=${encodeURIComponent(stageFilter)}`),
 
   taskDetail: (id: string) => req<TaskDetail>(`/tasks/${id}`),
 
