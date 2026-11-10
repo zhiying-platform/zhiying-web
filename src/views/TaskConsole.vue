@@ -361,13 +361,24 @@ onUnmounted(() => {
             </NTag>
             <NPopconfirm @positive-click="removeTask(t.video_id, 'record')">
               <template #trigger>
-                <NButton size="tiny" quaternary :loading="deleting === t.video_id">清除记录</NButton>
+                <NButton
+                  size="tiny"
+                  quaternary
+                  :loading="deleting === t.video_id"
+                  title="仅清除任务进度记录（进度/状态）。知识库条目、源视频与产物全部保留；任何状态（含画面识别中）都可操作，但建议在完成后使用，避免与进行中的管道互相干扰"
+                >清除记录</NButton>
               </template>
-              仅清任务记录（进度/状态），保留知识库条目与源视频/产物。
+              仅清任务记录（进度/状态），保留知识库条目与源视频/产物。确认？
             </NPopconfirm>
             <NPopconfirm @positive-click="removeTask(t.video_id, 'all')">
               <template #trigger>
-                <NButton size="tiny" quaternary type="error" :loading="deleting === t.video_id">彻底删除</NButton>
+                <NButton
+                  size="tiny"
+                  quaternary
+                  type="error"
+                  :loading="deleting === t.video_id"
+                  title="彻底删除知识库条目（含向量/全文索引）、源视频与全部产物，不可恢复。仅在确定不再需要该视频时使用"
+                >彻底删除</NButton>
               </template>
               删除全部数据（知识库条目 + 源视频 + 产物）？不可恢复！
             </NPopconfirm>

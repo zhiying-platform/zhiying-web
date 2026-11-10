@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h } from 'vue'
+import { computed, h, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   NConfigProvider, NLayout, NLayoutSider, NLayoutContent, NLayoutHeader, NMenu,
@@ -9,6 +9,7 @@ import type { MenuOption } from 'naive-ui'
 
 const route = useRoute()
 const router = useRouter()
+const collapsed = ref(false)
 
 function renderIconEmoji(emoji: string) {
   return () => h('span', { style: 'font-size: 16px' }, emoji)
@@ -34,18 +35,27 @@ function onMenu(key: string) {
       <NLayout position="absolute" has-sider>
         <!-- 侧边栏 -->
         <NLayoutSider
+          v-model:collapsed="collapsed"
           bordered
           :width="200"
-          :collapsed-width="0"
+          :collapsed-width="64"
           collapse-mode="width"
           show-trigger
           style="background: #fff"
         >
-          <div style="padding: 20px 20px 12px; display: flex; align-items: baseline; gap: 8px">
+          <div style="padding: 20px 20px 12px; display: flex; align-items: baseline; gap: 8px; white-space: nowrap; overflow: hidden">
             <span style="font-size: 20px; font-weight: 700; letter-spacing: 2px; color: #1e293b">知映</span>
-            <span style="font-size: 12px; color: #94a3b8">zhiying</span>
+            <span v-if="!collapsed" style="font-size: 12px; color: #94a3b8">zhiying</span>
           </div>
-          <NMenu :options="menuOptions" :value="activeKey" :indent="24" @update:value="onMenu" />
+          <NMenu
+            :options="menuOptions"
+            :value="activeKey"
+            :indent="24"
+            :collapsed="collapsed"
+            :collapsed-width="64"
+            :collapsed-icon-size="20"
+            @update:value="onMenu"
+          />
           <div style="position: absolute; bottom: 16px; padding: 0 20px; font-size: 12px; color: #cbd5e1">
             视频知识库 V0.3
           </div>
