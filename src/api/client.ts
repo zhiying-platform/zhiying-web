@@ -100,6 +100,34 @@ export interface VideoItem {
   summary: string
 }
 
+export interface TaskStats {
+  total: number
+  running: number
+  done: number
+  failed: number
+  stuck: number
+}
+
+/** GET /api/tasks 的分页响应（DR-37：后端主导统计+筛选+分页） */
+export interface TaskListResult {
+  tasks: Task[]
+  stats: TaskStats
+  total: number
+  page: number
+  page_size: number
+  pages: number
+  auto_resumed: string[]
+  auto_resume_exhausted: string[]
+}
+
+export interface ListTasksParams {
+  stageFilter?: string
+  page?: number
+  pageSize?: number
+  keyword?: string
+  autoResume?: boolean
+}
+
 export const api = {
   health: () => req<{ status: string; version: string }>('/health'),
 
@@ -124,8 +152,16 @@ export const api = {
       { method: 'DELETE' },
     ),
 
-  listTasks: (stageFilter = 'all') =>
-    req<{ tasks: Task[] }>(`/tasks?stage_filter=${encodeURIComponent(stageFilter)}`),
+  listTasks: (p: ListTasksParams = {}) => {
+    const qs = new URLSearchParams({
+      stage_filter: p.stageFilter || 'all',
+      page: String(p.page ?? 1),
+      page_size: String(p.pageSize ?? 20),
+      keyword: p.keyword || '',
+      auto_resume: String(p.autoResume ?? true),
+    })
+    return req<TaskListResult>(`/tasks?${qs.toString()}`)
+  },
 
   /** 重置卡住的任务并重跑（DR-34；已完成阶段复用缓存） */
   resetTask: (video_id: string) =>

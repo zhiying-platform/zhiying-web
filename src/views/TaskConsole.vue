@@ -3,10 +3,10 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import {
   NButton, NCard, NInput, NSpace, NTag, NProgress, NEmpty, useMessage, NSelect,
   NTabs, NTabPane, NUpload, NUploadDragger, NInputGroup, NGrid, NGi, NText,
-  NTooltip, NPopconfirm,
+  NTooltip, NPopconfirm, NPagination,
 } from 'naive-ui'
 import type { UploadFileInfo } from 'naive-ui'
-import { api, STAGE_LABEL, fmtTs, type Task, type ApiError, type Precision } from '../api/client'
+import { api, STAGE_LABEL, fmtTs, type Task, type TaskStats, type ApiError, type Precision } from '../api/client'
 
 const message = useMessage()
 const source = ref('')
@@ -15,6 +15,13 @@ const precision = ref<Precision>('fast')
 const submitting = ref(false)
 const tasks = ref<Task[]>([])
 let timer: number | undefined
+
+// DR-37：统计/筛选/分页均由后端返回
+const stats = ref<TaskStats>({ total: 0, running: 0, done: 0, failed: 0, stuck: 0 })
+const page = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
+const keyword = ref('')
 
 const batchText = ref('')
 const uploading = ref(false)
@@ -38,20 +45,6 @@ const STAGE_TYPE: Record<string, 'default' | 'info' | 'success' | 'error' | 'war
   summarizing: 'warning', done: 'success', failed: 'error', '-': 'default',
 }
 
-/** 各状态统计 + 独立配色（DR-35：点击卡片筛选） */
-const RUN_STAGES = ['queued', 'downloading', 'transcribing', 'visual', 'summarizing']
-const stuckCount = computed(() => tasks.value.filter((t) => t.stuck).length)
-
-const stats = computed(() => {
-  const s = { total: tasks.value.length, done: 0, running: 0, failed: 0 }
-  for (const t of tasks.value) {
-    if (t.stage === 'done') s.done++
-    else if (t.stage === 'failed') s.failed++
-    else s.running++
-  }
-  return s
-})
-
 /** 状态筛选（点击统计卡片切换；再次点击已选中的卡片则回到全部） */
 const stageFilter = ref('all')
 
@@ -64,6 +57,7 @@ interface StatCard {
   border: string
 }
 
+// 统计值来自后端（DR-37），不受当前筛选影响
 const statCards = computed<StatCard[]>(() => [
   { key: 'all', label: '全部任务', value: stats.value.total, color: '#334155', bg: '#f8fafc', border: '#e2e8f0' },
   { key: 'running', label: '处理中', value: stats.value.running, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
@@ -73,14 +67,24 @@ const statCards = computed<StatCard[]>(() => [
 
 function selectStat(key: string) {
   stageFilter.value = stageFilter.value === key ? 'all' : key
+  page.value = 1 // 切筛选回到第一页
+  refresh()
 }
 
-const filteredTasks = computed(() => {
-  const f = stageFilter.value
-  if (f === 'all') return tasks.value
-  if (f === 'running') return tasks.value.filter((t) => RUN_STAGES.includes(t.stage || ''))
-  return tasks.value.filter((t) => t.stage === f)
-})
+/** 搜索（回车/清空触发，回到第一页） */
+function onSearch() {
+  page.value = 1
+  refresh()
+}
+
+/** 改每页条数（回到第一页） */
+function onPageSizeChange(size: number) {
+  pageSize.value = size
+  page.value = 1
+  refresh()
+}
+
+const stuckCount = computed(() => stats.value.stuck)
 
 /** 重置卡住任务（DR-34） */
 const resetting = ref<string | null>(null)
@@ -130,8 +134,18 @@ const batchLines = computed(() => {
 
 async function refresh() {
   try {
-    const r = await api.listTasks(stageFilter.value)
+    // DR-37：后端返回全量统计 + 条件查询 + 分页结果
+    // stats 不受当前筛选影响（后端基于全量算），列表只返当前页
+    const r = await api.listTasks({
+      stageFilter: stageFilter.value,
+      page: page.value,
+      pageSize: pageSize.value,
+      keyword: keyword.value,
+    })
     tasks.value = r.tasks
+    stats.value = r.stats
+    total.value = r.total
+    page.value = r.page
   } catch {
     /* 服务未启动时静默 */
   }
@@ -389,9 +403,23 @@ onUnmounted(() => {
     </NCard>
 
     <NCard title="任务列表" size="small">
-      <NEmpty v-if="!filteredTasks.length" description="该状态下暂无任务" />
+      <template #header-extra>
+        <NSpace :size="8" align="center">
+          <NInput
+            v-model:value="keyword"
+            placeholder="搜索标题 / ID"
+            clearable
+            size="small"
+            style="width: 200px"
+            @keyup.enter="onSearch"
+            @clear="onSearch"
+          />
+          <NText depth="3" style="font-size: 12px">共 {{ total }} 条</NText>
+        </NSpace>
+      </template>
+      <NEmpty v-if="!tasks.length" description="该状态下暂无任务" />
       <NSpace v-else vertical :size="10">
-        <NCard v-for="t in filteredTasks" :key="t.video_id" size="small" embedded>
+        <NCard v-for="t in tasks" :key="t.video_id" size="small" embedded>
           <div style="display: flex; align-items: center; gap: 12px">
             <div style="flex: 1; min-width: 0">
               <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
@@ -450,6 +478,18 @@ onUnmounted(() => {
           />
         </NCard>
       </NSpace>
+      <div v-if="total > pageSize" style="display: flex; justify-content: flex-end; margin-top: 16px">
+        <NPagination
+          v-model:page="page"
+          :page-size="pageSize"
+          :item-count="total"
+          size="small"
+          show-size-picker
+          :page-sizes="[10, 20, 50]"
+          @update:page="refresh"
+          @update:page-size="onPageSizeChange"
+        />
+      </div>
     </NCard>
   </div>
 </template>
