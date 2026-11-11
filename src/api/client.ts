@@ -35,6 +35,10 @@ export interface Task {
   stage?: string
   /** 失败原因（仅 failed 状态返回） */
   error?: string
+  /** 心跳超过 10 分钟未更新且仍处于运行阶段（DR-34，可一键重跑） */
+  stuck?: boolean
+  /** 任务心跳时间戳（iso） */
+  updated_at?: string
 }
 
 /** POST /api/tasks 的 202 响应（新任务） */
@@ -122,6 +126,12 @@ export const api = {
 
   listTasks: (stageFilter = 'all') =>
     req<{ tasks: Task[] }>(`/tasks?stage_filter=${encodeURIComponent(stageFilter)}`),
+
+  /** 重置卡住的任务并重跑（DR-34；已完成阶段复用缓存） */
+  resetTask: (video_id: string) =>
+    req<{ reset: boolean; task_id: string; stage: string }>(`/tasks/${video_id}/reset`, {
+      method: 'POST',
+    }),
 
   taskDetail: (id: string) => req<TaskDetail>(`/tasks/${id}`),
 

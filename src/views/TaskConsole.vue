@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import {
   NButton, NCard, NInput, NSpace, NTag, NProgress, NEmpty, useMessage, NSelect,
-  NTabs, NTabPane, NUpload, NUploadDragger, NInputGroup, NGrid, NGi, NText, NStatistic,
+  NTabs, NTabPane, NUpload, NUploadDragger, NInputGroup, NGrid, NGi, NText,
   NTooltip, NPopconfirm,
 } from 'naive-ui'
 import type { UploadFileInfo } from 'naive-ui'
@@ -38,6 +38,10 @@ const STAGE_TYPE: Record<string, 'default' | 'info' | 'success' | 'error' | 'war
   summarizing: 'warning', done: 'success', failed: 'error', '-': 'default',
 }
 
+/** 各状态统计 + 独立配色（DR-35：点击卡片筛选） */
+const RUN_STAGES = ['queued', 'downloading', 'transcribing', 'visual', 'summarizing']
+const stuckCount = computed(() => tasks.value.filter((t) => t.stuck).length)
+
 const stats = computed(() => {
   const s = { total: tasks.value.length, done: 0, running: 0, failed: 0 }
   for (const t of tasks.value) {
@@ -48,18 +52,50 @@ const stats = computed(() => {
   return s
 })
 
-/** 状态筛选（DR-25） */
+/** 状态筛选（点击统计卡片切换；再次点击已选中的卡片则回到全部） */
 const stageFilter = ref('all')
-const stageFilterOptions = [
-  { label: '全部', value: 'all' },
-  { label: '⏳ 处理中', value: 'running' },
-  { label: '排队', value: 'pending' },
-  { label: '✅ 已完成', value: 'done' },
-  { label: '❌ 失败', value: 'failed' },
-]
-const filteredTasks = computed(() =>
-  stageFilter.value === 'all' ? tasks.value : tasks.value.filter((t) => t.stage === stageFilter.value),
-)
+
+interface StatCard {
+  key: string
+  label: string
+  value: number
+  color: string
+  bg: string
+  border: string
+}
+
+const statCards = computed<StatCard[]>(() => [
+  { key: 'all', label: '全部任务', value: stats.value.total, color: '#334155', bg: '#f8fafc', border: '#e2e8f0' },
+  { key: 'running', label: '处理中', value: stats.value.running, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+  { key: 'done', label: '已完成', value: stats.value.done, color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' },
+  { key: 'failed', label: '失败', value: stats.value.failed, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+])
+
+function selectStat(key: string) {
+  stageFilter.value = stageFilter.value === key ? 'all' : key
+}
+
+const filteredTasks = computed(() => {
+  const f = stageFilter.value
+  if (f === 'all') return tasks.value
+  if (f === 'running') return tasks.value.filter((t) => RUN_STAGES.includes(t.stage || ''))
+  return tasks.value.filter((t) => t.stage === f)
+})
+
+/** 重置卡住任务（DR-34） */
+const resetting = ref<string | null>(null)
+async function resetTask(id: string) {
+  resetting.value = id
+  try {
+    await api.resetTask(id)
+    message.success('已重置，任务重新入队（已完成的阶段复用缓存）')
+    await refresh()
+  } catch (e: unknown) {
+    message.error(`重置失败：${(e as Error).message}`)
+  } finally {
+    resetting.value = null
+  }
+}
 
 /** 删除任务（DR-26 两档）：record=仅清记录（保留 KB 与源视频/产物）；all=彻底删除 */
 const deleting = ref<string | null>(null)
@@ -330,14 +366,24 @@ onUnmounted(() => {
     </NCard>
 
     <NCard size="small" style="margin-bottom: 16px">
-      <NGrid :cols="5" :x-gap="12">
-        <NGi><NStatistic label="全部任务" :value="stats.total" /></NGi>
-        <NGi><NStatistic label="处理中" :value="stats.running" /></NGi>
-        <NGi><NStatistic label="已完成" :value="stats.done" /></NGi>
-        <NGi><NStatistic label="失败" :value="stats.failed" /></NGi>
-        <NGi>
-          <div style="font-size: 12px; color: #94a3b8; margin-bottom: 6px">状态筛选</div>
-          <NSelect v-model:value="stageFilter" :options="stageFilterOptions" size="small" @update:value="refresh" />
+      <NGrid :cols="4" :x-gap="12">
+        <NGi v-for="c in statCards" :key="c.key">
+          <div
+            :title="`点击筛选：${c.label}`"
+            style="cursor: pointer; border-radius: 8px; padding: 12px 14px; transition: all .15s"
+            :style="{
+              background: stageFilter === c.key ? c.bg : '#fff',
+              border: `2px solid ${stageFilter === c.key ? c.color : c.border}`,
+              opacity: stageFilter === 'all' || stageFilter === c.key ? 1 : 0.55,
+            }"
+            @click="selectStat(c.key)"
+          >
+            <div style="font-size: 12px; color: #64748b; margin-bottom: 4px">{{ c.label }}</div>
+            <div :style="{ fontSize: '24px', fontWeight: 700, lineHeight: 1.1, color: c.color }">{{ c.value }}</div>
+            <div v-if="c.key === 'running' && stuckCount > 0" style="font-size: 11px; color: #dc2626; margin-top: 4px">
+              ⚠ {{ stuckCount }} 个疑似卡住
+            </div>
+          </div>
         </NGi>
       </NGrid>
     </NCard>
@@ -355,10 +401,22 @@ onUnmounted(() => {
               <div v-if="t.stage === 'failed' && t.error" style="font-size: 12px; color: #ef4444; margin-top: 2px">
                 {{ t.error.slice(0, 80) }}
               </div>
+              <div v-if="t.stuck" style="font-size: 12px; color: #d97706; margin-top: 2px">
+                ⚠ 心跳超过 10 分钟未更新，可能已卡住（后台进程被回收）——点右侧「重新运行」恢复
+              </div>
             </div>
             <NTag :type="STAGE_TYPE[t.stage || '-'] || 'default'" size="small">
               {{ STAGE_LABEL[t.stage || '-'] || t.stage }}
             </NTag>
+            <NButton
+              v-if="t.stuck"
+              size="tiny"
+              type="warning"
+              secondary
+              :loading="resetting === t.video_id"
+              title="重置任务状态并重跑；已完成的阶段（下载/转写/帧描述）复用缓存，不重复花费 API"
+              @click="resetTask(t.video_id)"
+            >重新运行</NButton>
             <NPopconfirm @positive-click="removeTask(t.video_id, 'record')">
               <template #trigger>
                 <NButton
