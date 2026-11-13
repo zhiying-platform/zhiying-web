@@ -1,25 +1,45 @@
 <script setup lang="ts">
-import { computed, h, ref } from 'vue'
+import { computed, h, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   NConfigProvider, NLayout, NLayoutSider, NLayoutContent, NLayoutHeader, NMenu,
   NMessageProvider, zhCN, dateZhCN,
 } from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
+import { api, type AppConfig } from './api/client'
 
 const route = useRoute()
 const router = useRouter()
 const collapsed = ref(false)
 
+// 能力标志（V1.3）：精简安装未装 PG 时隐藏知识库/问答，改用文档库
+const cfg = ref<AppConfig | null>(null)
+const kbAvailable = ref(true) // 默认假定可用，/api/config 返回后再修正
+
+onMounted(async () => {
+  try {
+    cfg.value = await api.config()
+    kbAvailable.value = cfg.value.kb_available
+  } catch {
+    // 后端未起时保持默认全菜单，让各视图自己的报错 UI 生效
+  }
+})
+
 function renderIconEmoji(emoji: string) {
   return () => h('span', { style: 'font-size: 16px' }, emoji)
 }
 
-const menuOptions: MenuOption[] = [
-  { label: '任务台', key: '/tasks', icon: renderIconEmoji('🎬') },
-  { label: '知识库', key: '/library', icon: renderIconEmoji('📚') },
-  { label: '问答', key: '/ask', icon: renderIconEmoji('💬') },
-]
+const menuOptions = computed<MenuOption[]>(() => {
+  const items: MenuOption[] = [
+    { label: '任务台', key: '/tasks', icon: renderIconEmoji('🎬') },
+    { label: '文档库', key: '/docs', icon: renderIconEmoji('📄') },
+  ]
+  if (kbAvailable.value) {
+    items.push({ label: '知识库', key: '/library', icon: renderIconEmoji('📚') })
+    items.push({ label: '问答', key: '/ask', icon: renderIconEmoji('💬') })
+  }
+  return items
+})
 
 const activeKey = computed(() => route.path)
 const pageTitle = computed(() => (route.meta.title as string) || '')
@@ -57,7 +77,7 @@ function onMenu(key: string) {
             @update:value="onMenu"
           />
           <div style="position: absolute; bottom: 16px; padding: 0 20px; font-size: 12px; color: #cbd5e1">
-            视频知识库 V0.3
+            {{ cfg ? `视频知识库 v${cfg.version}` : '视频知识库' }}
           </div>
         </NLayoutSider>
 

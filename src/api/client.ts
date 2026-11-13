@@ -128,6 +128,36 @@ export interface ListTasksParams {
   autoResume?: boolean
 }
 
+
+/** GET /api/config 的能力标志（V1.3：精简安装 kb_available=false） */
+export interface AppConfig {
+  version: string
+  vlm_provider: string
+  text_provider: string
+  embed_model: string
+  data_dir: string
+  keys_configured: { siliconflow: boolean; longcat: boolean }
+  kb_available: boolean
+}
+
+/** 文档库条目（V1.3：文件系统驱动，不依赖 PG） */
+export interface DocVideo {
+  video_id: string
+  title: string
+  doc_count: number
+  has_transcript: boolean
+  has_skill: boolean
+  has_summary: boolean
+}
+
+export interface DocFile {
+  path: string
+  name: string
+  kind: 'transcript' | 'skill' | 'summary'
+  size: number
+  modified: number
+}
+
 export const api = {
   health: () => req<{ status: string; version: string }>('/health'),
 
@@ -187,6 +217,16 @@ export const api = {
     }),
 
   videos: () => req<{ videos: VideoItem[] }>('/videos'),
+
+  config: () => req<AppConfig>('/config'),
+
+  docs: () => req<{ videos: DocVideo[]; kb_available: boolean }>('/docs'),
+
+  videoDocs: (id: string) =>
+    req<{ video_id: string; docs: DocFile[] }>(`/docs/${id}`),
+
+  readDoc: (id: string, path: string) =>
+    req<{ path: string; name: string; content: string }>(`/docs/${id}/file?path=${encodeURIComponent(path)}`),
 }
 
 /** 秒 → mm:ss / hh:mm:ss */
