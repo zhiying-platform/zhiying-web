@@ -31,7 +31,7 @@ onMounted(async () => {
 
 // 深链守卫：已停在知识库/问答页时切到精简模式 → 自动跳转文档库
 watch(kbAvailable, (v) => {
-  if (v === false && ['/library', '/ask'].includes(route.path)) router.push('/docs')
+  if (v === false && ['/library', '/ask'].includes(route.path)) router.push('/arts')
 })
 
 function renderIconEmoji(emoji: string) {
@@ -41,7 +41,7 @@ function renderIconEmoji(emoji: string) {
 const menuOptions = computed<MenuOption[]>(() => {
   const items: MenuOption[] = [
     { label: '任务台', key: '/tasks', icon: renderIconEmoji('🎬') },
-    { label: '文档库', key: '/docs', icon: renderIconEmoji('📄') },
+    { label: '文档库', key: '/arts', icon: renderIconEmoji('📄') },
   ]
   if (kbAvailable.value === true) {
     items.push({ label: '知识库', key: '/library', icon: renderIconEmoji('📚') })
