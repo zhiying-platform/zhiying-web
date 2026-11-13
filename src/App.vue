@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, ref, onMounted } from 'vue'
+import { computed, h, ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   NConfigProvider, NLayout, NLayoutSider, NLayoutContent, NLayoutHeader, NMenu,
@@ -12,17 +12,26 @@ const route = useRoute()
 const router = useRouter()
 const collapsed = ref(false)
 
-// 能力标志（V1.3）：精简安装未装 PG 时隐藏知识库/问答，改用文档库
+// 能力标志（V1.3）：null=未知（首帧）；true 才显示知识库/问答，
+// 避免「先渲染后消失」的闪现；结果写 localStorage，再次打开首帧即正确
 const cfg = ref<AppConfig | null>(null)
-const kbAvailable = ref(true) // 默认假定可用，/api/config 返回后再修正
+const kbAvailable = ref<boolean | null>(
+  localStorage.getItem('zhiying_kb') === null ? null : localStorage.getItem('zhiying_kb') === '1',
+)
 
 onMounted(async () => {
   try {
     cfg.value = await api.config()
     kbAvailable.value = cfg.value.kb_available
+    localStorage.setItem('zhiying_kb', cfg.value.kb_available ? '1' : '0')
   } catch {
-    // 后端未起时保持默认全菜单，让各视图自己的报错 UI 生效
+    // 后端未起：保持未知态（仅基础菜单），各视图自己的报错 UI 生效
   }
+})
+
+// 深链守卫：已停在知识库/问答页时切到精简模式 → 自动跳转文档库
+watch(kbAvailable, (v) => {
+  if (v === false && ['/library', '/ask'].includes(route.path)) router.push('/docs')
 })
 
 function renderIconEmoji(emoji: string) {
@@ -34,7 +43,7 @@ const menuOptions = computed<MenuOption[]>(() => {
     { label: '任务台', key: '/tasks', icon: renderIconEmoji('🎬') },
     { label: '文档库', key: '/docs', icon: renderIconEmoji('📄') },
   ]
-  if (kbAvailable.value) {
+  if (kbAvailable.value === true) {
     items.push({ label: '知识库', key: '/library', icon: renderIconEmoji('📚') })
     items.push({ label: '问答', key: '/ask', icon: renderIconEmoji('💬') })
   }
