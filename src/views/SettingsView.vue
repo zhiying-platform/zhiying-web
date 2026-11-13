@@ -75,8 +75,8 @@ onMounted(load)
                 show-password-on="click"
                 placeholder="sk-...（留空 = 不修改）"
               />
-              <NTag v-if="states.siliconflow?.configured" size="small" type="success" :bordered="false">
-                已配置：{{ states.siliconflow.masked }}
+              <NTag v-if="states.SILICONFLOW_API_KEY?.configured" size="small" type="success" :bordered="false">
+                已配置：{{ states.SILICONFLOW_API_KEY.masked }}
               </NTag>
               <NTag v-else size="small" type="warning" :bordered="false">未配置（视频转写不可用）</NTag>
             </NSpace>
@@ -90,8 +90,8 @@ onMounted(load)
                 show-password-on="click"
                 placeholder="留空 = 不修改"
               />
-              <NTag v-if="states.longcat?.configured" size="small" type="success" :bordered="false">
-                已配置：{{ states.longcat.masked }}
+              <NTag v-if="states.LONGCAT_API_KEY?.configured" size="small" type="success" :bordered="false">
+                已配置：{{ states.LONGCAT_API_KEY.masked }}
               </NTag>
               <NTag v-else size="small" type="warning" :bordered="false">未配置（画面识别 / 摘要 / skill 不可用）</NTag>
             </NSpace>
