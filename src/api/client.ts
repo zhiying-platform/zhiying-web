@@ -227,6 +227,17 @@ export const api = {
 
   readDoc: (id: string, path: string) =>
     req<{ path: string; name: string; content: string }>(`/docs/${id}/file?path=${encodeURIComponent(path)}`),
+
+  /** GET /api/settings：Key 配置状态（掩码显示，不回传完整值） */
+  getSettings: () =>
+    req<{ keys: Record<string, { configured: boolean; masked: string }> }>('/settings'),
+
+  /** POST /api/settings：保存 Key（空值 = 不修改该项），写入 .env 后立即生效 */
+  saveSettings: (siliconflow: string, longcat: string) =>
+    req<{ saved: boolean; changed?: string[]; detail?: string; keys: Record<string, { configured: boolean; masked: string }> }>('/settings', {
+      method: 'POST',
+      body: JSON.stringify({ siliconflow_api_key: siliconflow, longcat_api_key: longcat }),
+    }),
 }
 
 /** 秒 → mm:ss / hh:mm:ss */

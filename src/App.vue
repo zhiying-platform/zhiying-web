@@ -47,6 +47,7 @@ const menuOptions = computed<MenuOption[]>(() => {
     items.push({ label: '知识库', key: '/library', icon: renderIconEmoji('📚') })
     items.push({ label: '问答', key: '/ask', icon: renderIconEmoji('💬') })
   }
+  items.push({ label: '设置', key: '/settings', icon: renderIconEmoji('⚙️') })
   return items
 })
 
