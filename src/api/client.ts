@@ -39,6 +39,12 @@ export interface Task {
   stuck?: boolean
   /** 任务心跳时间戳（iso） */
   updated_at?: string
+  /** 进度（V1.3）：当前完成数 / 总数 / 单位（如 分片 3/5、帧 8/20） */
+  progress?: number | null
+  progress_total?: number | null
+  progress_unit?: string
+  /** 预期剩余秒数（按已耗时滑动平均估算） */
+  eta_seconds?: number | null
 }
 
 /** POST /api/tasks 的 202 响应（新任务） */

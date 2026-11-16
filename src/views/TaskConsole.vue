@@ -426,6 +426,24 @@ onUnmounted(() => {
                 {{ t.title || t.video_id }}
               </div>
               <div style="font-size: 12px; color: #94a3b8">{{ t.video_id }}</div>
+              <!-- 进度条（V1.3：分片/帧计数 + 百分比 + 预期剩余时间） -->
+              <div
+                v-if="t.progress != null && t.progress_total != null && t.progress_total > 0 && t.stage !== 'done'"
+                style="margin-top: 6px"
+              >
+                <NProgress
+                  type="line"
+                  :percentage="Math.min(100, Math.round((t.progress / t.progress_total) * 100))"
+                  :height="8"
+                  :border-radius="4"
+                  :show-indicator="false"
+                />
+                <div style="font-size: 12px; color: #64748b; margin-top: 3px">
+                  {{ t.progress }}/{{ t.progress_total }} {{ t.progress_unit || '' }}
+                  （{{ Math.round((t.progress / t.progress_total) * 100) }}%）
+                  <span v-if="t.eta_seconds != null && t.eta_seconds > 0">· 预计剩余 {{ fmtEta(t.eta_seconds) }}</span>
+                </div>
+              </div>
               <div v-if="t.stage === 'failed' && t.error" style="font-size: 12px; color: #ef4444; margin-top: 2px">
                 {{ t.error.slice(0, 80) }}
               </div>
@@ -437,14 +455,16 @@ onUnmounted(() => {
               {{ STAGE_LABEL[t.stage || '-'] || t.stage }}
             </NTag>
             <NButton
-              v-if="t.stuck"
+              v-if="t.stuck || t.stage === 'failed'"
               size="tiny"
               type="warning"
               secondary
               :loading="resetting === t.video_id"
-              title="重置任务状态并重跑；已完成的阶段（下载/转写/帧描述）复用缓存，不重复花费 API"
+              :title="t.stage === 'failed'
+                ? '失败重试：重置任务状态并重跑；已完成的阶段（下载/音频抽取/帧提取）复用缓存，不重复花费 API'
+                : '重置任务状态并重跑；已完成的阶段（下载/转写/帧描述）复用缓存，不重复花费 API'"
               @click="resetTask(t.video_id)"
-            >重新运行</NButton>
+            >重试</NButton>
             <NPopconfirm @positive-click="removeTask(t.video_id, 'record')">
               <template #trigger>
                 <NButton
