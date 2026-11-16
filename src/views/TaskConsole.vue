@@ -272,6 +272,16 @@ onMounted(() => {
 onUnmounted(() => {
   if (timer) clearInterval(timer)
 })
+
+/** 预期剩余秒数 → 人类可读（1m20s / 2h5m） */
+function fmtEta(sec: number): string {
+  const s = Math.max(0, Math.floor(sec))
+  const m = Math.floor(s / 60)
+  const h = Math.floor(m / 60)
+  if (h > 0) return `${h}h${m % 60}m`
+  if (m > 0) return `${m}m${s % 60}s`
+  return `${s}s`
+}
 </script>
 
 <template>
