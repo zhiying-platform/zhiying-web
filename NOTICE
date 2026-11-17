@@ -1,0 +1,17 @@
+知映 zhiying — 视频知识库平台
+Copyright 2026 zhiying-platform
+
+本产品包含以下仓库：
+  - zhiying     https://github.com/zhiying-platform/zhiying
+  - zhiying-web https://github.com/zhiying-platform/zhiying-web
+
+开源协议：Apache License, Version 2.0（见 LICENSE 文件）。
+
+二次开发 / 衍生作品须知（依据 Apache-2.0 第 4 条）：
+  1. 必须保留本 NOTICE 文件及 LICENSE 中的版权、专利、商标与归属声明；
+  2. 若修改了任何文件，须在改动的文件中显著注明「已修改」及修改日期；
+  3. 分发衍生作品时，须附带本 NOTICE 中可适用的归属内容；
+  4. 请注明源头：zhiying-platform（https://github.com/zhiying-platform），
+     并说明本作品基于「知映 zhiying」二次开发。
+
+Logo / 品牌资源：assets/logo/ 下的印章「知」由项目自建，衍生态同样适用上述署名要求。
