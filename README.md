@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/zhiying-logo.png" alt="知映 zhiying" width="420">
+</p>
+
 # zhiying-web
 
 知映 zhiying 的 Web 前端（Vue 3 + Vite + Naive UI）。
