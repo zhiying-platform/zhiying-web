@@ -33,7 +33,7 @@ const qualityOptions = [
 ]
 
 const precisionOptions = [
-  { label: '⚡ 快速（默认，长视频秒级）', value: 'fast' },
+  { label: '快速（默认，长视频秒级）', value: 'fast' },
   { label: '🔬 精细（逐帧检测，长视频约 10 分钟）', value: 'precise' },
 ]
 
@@ -289,7 +289,7 @@ function fmtEta(sec: number): string {
     <NCard size="small" style="margin-bottom: 16px">
       <NTabs type="segment" animated>
         <!-- 链接模式 -->
-        <NTabPane name="link" tab="🔗 视频链接">
+        <NTabPane name="link" tab="视频链接">
           <NSpace vertical style="padding: 4px 0">
             <NSpace>
               <NInputGroup>
@@ -356,7 +356,7 @@ function fmtEta(sec: number): string {
         </NTabPane>
 
         <!-- 批量导入 -->
-        <NTabPane name="batch" tab="📋 批量导入">
+        <NTabPane name="batch" tab="批量导入">
           <NSpace vertical style="padding: 4px 0">
             <NInput
               v-model:value="batchText"
@@ -381,7 +381,7 @@ function fmtEta(sec: number): string {
               <NSelect v-model:value="precision" :options="precisionOptions" style="width: 320px" size="small" />
             </template>
             画面识别精度：
-            ⚡快速 —— 日常收藏/批量导入（长视频秒级完成，抽帧均匀覆盖）
+            快速 —— 日常收藏/批量导入（长视频秒级完成，抽帧均匀覆盖）
             🔬精细 —— 镜头切换快的视频（教程/PPT/游戏录像），需帧级切点；长视频约 10 分钟
           </NTooltip>
           <NSelect v-model:value="quality" :options="qualityOptions" style="width: 140px" size="small" />

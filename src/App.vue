@@ -9,6 +9,7 @@ import type { MenuOption } from 'naive-ui'
 import sealLogo from './assets/logo.svg'
 import fullLogo from './assets/logo-full.svg'
 import { api, type AppConfig } from './api/client'
+import Icon from './components/Icon.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -36,20 +37,21 @@ watch(kbAvailable, (v) => {
   if (v === false && ['/library', '/ask'].includes(route.path)) router.push('/arts')
 })
 
-function renderIconEmoji(emoji: string) {
-  return () => h('span', { style: 'font-size: 16px' }, emoji)
+// 菜单图标：Lucide 风格 SVG（与印章 Logo 墨笔同调），替代 emoji
+function renderIcon(name: 'tasks' | 'docs' | 'library' | 'ask' | 'settings') {
+  return () => h(Icon, { name, size: 17 })
 }
 
 const menuOptions = computed<MenuOption[]>(() => {
   const items: MenuOption[] = [
-    { label: '任务台', key: '/tasks', icon: renderIconEmoji('🎬') },
-    { label: '文档库', key: '/arts', icon: renderIconEmoji('📄') },
+    { label: '任务台', key: '/tasks', icon: renderIcon('tasks') },
+    { label: '文档库', key: '/arts', icon: renderIcon('docs') },
   ]
   if (kbAvailable.value === true) {
-    items.push({ label: '知识库', key: '/library', icon: renderIconEmoji('📚') })
-    items.push({ label: '问答', key: '/ask', icon: renderIconEmoji('💬') })
+    items.push({ label: '知识库', key: '/library', icon: renderIcon('library') })
+    items.push({ label: '问答', key: '/ask', icon: renderIcon('ask') })
   }
-  items.push({ label: '设置', key: '/settings', icon: renderIconEmoji('⚙️') })
+  items.push({ label: '设置', key: '/settings', icon: renderIcon('settings') })
   return items
 })
 
