@@ -55,19 +55,26 @@ onMounted(load)
 <template>
   <div style="max-width: 760px; margin: 0 auto">
     <NAlert type="info" title="配置说明" style="margin-bottom: 16px">
-      模型 API Key 用于视频转写（SenseVoice）与画面识别 / 摘要 / skill 蒸馏（LongCat）。
+      模型 API Key 用于视频转写、画面识别、摘要与 skill 蒸馏。
       Key 保存到本机 <NText code>.env</NText>，不会上传到任何服务器；保存后立即生效，无需重启。
-      支持混搭：两个 Key 可以是不同厂商。
-      <div style="margin-top: 6px">
-        硅基流动 Key：<a href="https://cloud.siliconflow.cn" target="_blank" rel="noreferrer">cloud.siliconflow.cn</a>
-        （以 sk- 开头）　LongCat Key：<a href="https://longcat.chat" target="_blank" rel="noreferrer">longcat.chat</a>
-      </div>
+      两个 Key 可以是不同厂商（支持混搭），下方为当前推荐：
+      <ul style="margin: 6px 0 0; padding-left: 18px">
+        <li>
+          视频转写（SenseVoice）：推荐
+          <a href="https://cloud.siliconflow.cn" target="_blank" rel="noreferrer">硅基流动</a>
+          （Key 以 <NText code>sk-</NText> 开头）
+        </li>
+        <li>
+          画面识别 / 摘要 / skill 蒸馏：推荐
+          <a href="https://longcat.chat" target="_blank" rel="noreferrer">LongCat</a>
+        </li>
+      </ul>
     </NAlert>
 
     <NCard title="模型 API Key">
       <NSpin :show="loading">
-        <NForm label-placement="left" label-width="150">
-          <NFormItem label="硅基流动 Key">
+        <NForm label-placement="left" label-width="180">
+          <NFormItem label="硅基流动 Key（推荐）">
             <NSpace vertical style="width: 100%">
               <NInput
                 v-model:value="sfKey"
@@ -82,7 +89,7 @@ onMounted(load)
             </NSpace>
           </NFormItem>
 
-          <NFormItem label="LongCat Key">
+          <NFormItem label="LongCat Key（推荐）">
             <NSpace vertical style="width: 100%">
               <NInput
                 v-model:value="lcKey"
