@@ -7,6 +7,7 @@ import {
 } from 'naive-ui'
 import type { UploadFileInfo } from 'naive-ui'
 import { api, STAGE_LABEL, fmtTs, type Task, type TaskStats, type ApiError, type Precision } from '../api/client'
+import Icon from '../components/Icon.vue'
 
 const message = useMessage()
 const source = ref('')
@@ -34,7 +35,7 @@ const qualityOptions = [
 
 const precisionOptions = [
   { label: '快速（默认，长视频秒级）', value: 'fast' },
-  { label: '🔬 精细（逐帧检测，长视频约 10 分钟）', value: 'precise' },
+  { label: '精细（逐帧检测，长视频约 10 分钟）', value: 'precise' },
 ]
 
 const STAGE_PERCENT: Record<string, number> = {
@@ -232,7 +233,7 @@ async function submitBatch() {
     try {
       const r = await api.createTask(line, quality.value, precision.value)
       ok++
-      results.push(`✅ ${r.task_id}`)
+      results.push(`已入库 ${r.task_id}`)
     } catch (e: unknown) {
       const err = e as ApiError
       if (err.status === 409) {
@@ -240,7 +241,7 @@ async function submitBatch() {
         results.push(`ℹ 已存在 ${d?.task_id ?? line}`)
         ok++
       } else {
-        results.push(`❌ ${line.slice(0, 40)}: ${err.message}`)
+        results.push(`失败 ${line.slice(0, 40)}: ${err.message}`)
       }
     }
   }
@@ -306,7 +307,7 @@ function fmtEta(sec: number): string {
         </NTabPane>
 
         <!-- 本地上传：确认门（选中→预览确认→才上传） -->
-        <NTabPane name="upload" tab="📁 本地上传">
+        <NTabPane name="upload" tab="本地上传">
           <NSpace vertical style="padding: 4px 0">
             <NUpload
               v-if="!pendingFile"
@@ -318,7 +319,7 @@ function fmtEta(sec: number): string {
               @change="onFilePicked"
             >
               <NUploadDragger style="padding: 24px 0">
-                <div style="font-size: 32px; margin-bottom: 8px">📤</div>
+                <div style="margin-bottom: 10px; color: #94a3b8"><Icon name="upload" :size="32" /></div>
                 <NText strong>点击或拖拽视频文件到此处</NText>
                 <div style="font-size: 12px; color: #94a3b8; margin-top: 4px">
                   支持 mp4 / mkv / webm / mov / avi，单文件上限 2GB
@@ -382,7 +383,7 @@ function fmtEta(sec: number): string {
             </template>
             画面识别精度：
             快速 —— 日常收藏/批量导入（长视频秒级完成，抽帧均匀覆盖）
-            🔬精细 —— 镜头切换快的视频（教程/PPT/游戏录像），需帧级切点；长视频约 10 分钟
+            精细 —— 镜头切换快的视频（教程/PPT/游戏录像），需帧级切点；长视频约 10 分钟
           </NTooltip>
           <NSelect v-model:value="quality" :options="qualityOptions" style="width: 140px" size="small" />
         </NSpace>
@@ -405,7 +406,7 @@ function fmtEta(sec: number): string {
             <div style="font-size: 12px; color: #64748b; margin-bottom: 4px">{{ c.label }}</div>
             <div :style="{ fontSize: '24px', fontWeight: 700, lineHeight: 1.1, color: c.color }">{{ c.value }}</div>
             <div v-if="c.key === 'running' && stuckCount > 0" style="font-size: 11px; color: #dc2626; margin-top: 4px">
-              ⚠ {{ stuckCount }} 个疑似卡住
+              {{ stuckCount }} 个疑似卡住
             </div>
           </div>
         </NGi>
@@ -458,7 +459,7 @@ function fmtEta(sec: number): string {
                 {{ t.error.slice(0, 80) }}
               </div>
               <div v-if="t.stuck" style="font-size: 12px; color: #d97706; margin-top: 2px">
-                ⚠ 心跳超过 10 分钟未更新，可能已卡住（后台进程被回收）——点右侧「重新运行」恢复
+                心跳超过 10 分钟未更新，可能已卡住（后台进程被回收）——点右侧「重新运行」恢复
               </div>
             </div>
             <NTag :type="STAGE_TYPE[t.stage || '-'] || 'default'" size="small">
