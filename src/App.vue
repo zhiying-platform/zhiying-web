@@ -73,9 +73,12 @@ function onMenu(key: string) {
           show-trigger
           style="background: #fff"
         >
-          <div style="padding: 20px 20px 12px; display: flex; align-items: baseline; gap: 8px; white-space: nowrap; overflow: hidden">
-            <span style="font-size: 20px; font-weight: 700; letter-spacing: 2px; color: #1e293b">知映</span>
-            <span v-if="!collapsed" style="font-size: 12px; color: #94a3b8">zhiying</span>
+          <div style="padding: 20px 20px 12px; display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden">
+            <img src="./assets/logo.svg" alt="知映" style="width: 34px; height: 34px; flex: none" />
+            <div style="display: flex; flex-direction: column; line-height: 1.1">
+              <span style="font-size: 20px; font-weight: 700; letter-spacing: 2px; color: #1e293b">知映</span>
+              <span v-if="!collapsed" style="font-size: 12px; color: #94a3b8">zhiying</span>
+            </div>
           </div>
           <NMenu
             :options="menuOptions"
