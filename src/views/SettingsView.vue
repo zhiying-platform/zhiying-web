@@ -74,7 +74,7 @@ onMounted(load)
     <NCard title="模型 API Key">
       <NSpin :show="loading">
         <NForm label-placement="left" label-width="180">
-          <NFormItem label="硅基流动 Key（推荐）">
+          <NFormItem label="视频转写 Key（推荐硅基流动）">
             <NSpace vertical style="width: 100%">
               <NInput
                 v-model:value="sfKey"
@@ -89,7 +89,7 @@ onMounted(load)
             </NSpace>
           </NFormItem>
 
-          <NFormItem label="LongCat Key（推荐）">
+          <NFormItem label="画面识别 / 摘要 Key（推荐 LongCat）">
             <NSpace vertical style="width: 100%">
               <NInput
                 v-model:value="lcKey"
